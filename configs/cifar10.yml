@@ -1,0 +1,48 @@
+data:
+  dataset: "CIFAR10"
+  image_size: 32
+  channels: 3
+  num_workers: 0
+
+model:
+  ngf: 128
+  sigma_begin: 50
+  num_classes: 25
+  ema: true
+  ema_rate: 0.999
+  spec_norm: false
+  sigma_end: 0.01
+  score_model_state_dict_path: "model_weights\\cifar10\\best_checkpoint_with_denoising.pth"
+
+sampling:
+  batch_size: 16
+  step_lr: 0.0000062
+  n_steps_each: 1
+  denoise: true
+  n_samples: 100
+  k_p: 1.0
+  k_i: 0.0
+  k_d: 0.0
+  k_i_decay: 1.0
+  k_d_decay: 1.0
+  save: true
+  freq: 100
+  last_only: true # whether to save only the last sample
+  verbose: true
+
+evaluation:
+  inception_stats_path: "model_weights\\cifar10\\fid_stats_cifar10_train.npz"
+  batch_size: 16
+  num_workers: 0
+  freq: 5
+  evaluate: true
+  freq: 100
+  last_only: true
+  verbose: true
+
+visualization:
+  save: true
+  freq: 5
+  last_only: false
+  nrow: 8
+  verbose: true
