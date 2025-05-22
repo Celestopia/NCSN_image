@@ -58,20 +58,20 @@ def parse_args_and_config():
     config = dict2namespace(config) # config: arguments that are less likely to be changed
 
     # Update experiment arguments using default configurations
-    if args.k_p is None:
-        args.k_p = config.sampling.k_p
-    if args.k_i is None:
-        args.k_i = config.sampling.k_i
-    if args.k_d is None:
-        args.k_d = config.sampling.k_d
-    if args.k_i_decay is None:
-        args.k_i_decay = config.sampling.k_i_decay
-    if args.k_d_decay is None:
-        args.k_d_decay = config.sampling.k_d_decay
-    if args.n_steps_each is None:
-        args.n_steps_each = config.sampling.n_steps_each
-    if args.num_classes is None:
-        args.num_classes = config.model.num_classes
+    if args.k_p is not None:
+        config.sampling.k_p = args.k_p
+    if args.k_i is not None:
+        config.sampling.k_i = args.k_i
+    if args.k_d is not None:
+        config.sampling.k_d = args.k_d
+    if args.k_i_decay is not None:
+        config.sampling.k_i_decay = args.k_i_decay
+    if args.k_d_decay is not None:
+        config.sampling.k_d_decay = args.k_d_decay
+    if args.n_steps_each is not None:
+        config.sampling.n_steps_each = args.n_steps_each
+    if args.num_classes is not None:
+        config.model.num_classes = args.num_classes
     
     return args, config
 
@@ -83,7 +83,7 @@ def main(args, config):
 
     # Set up experiment directory
     time_string = str(int(time.time())) # Time string to identify the current experiment
-    experiment_dir = os.path.join(args.exp, 'experiment_{}_{}_{}_{}'.format(time_string, args.k_p, args.k_i, args.k_d))
+    experiment_dir = os.path.join(args.exp, 'experiment_{}_{}_{}_{}'.format(time_string, config.sampling.k_p, config.sampling.k_i, config.sampling.k_d))
     if args.exp_dir_suffix is None:
         experiment_dir += '_' + args.exp_name
     elif args.exp_dir_suffix:
@@ -99,9 +99,9 @@ def main(args, config):
 
     # Save experiment args and config
     with open(os.path.join(experiment_dir, 'config.yml'), 'w') as f:
-        yaml.dump(vars(config), f, default_flow_style=False)
+        yaml.dump(vars(config), f, default_flow_style=False, sort_keys=False)
     with open(os.path.join(experiment_dir, 'args.yml'), 'w') as f:
-        yaml.dump(vars(args), f, default_flow_style=False)
+        yaml.dump(vars(args), f, default_flow_style=False, sort_keys=False)
 
     try:
 
@@ -124,7 +124,7 @@ def main(args, config):
                     ).float().to(device)
         sigmas_np = sigmas.cpu().numpy()
 
-        score = NCSNv2(ngf=config.model.ngf, num_classes=args.num_classes, sigmas=sigmas, data_channels=config.data.channels)
+        score = NCSNv2(ngf=config.model.ngf, num_classes=config.model.num_classes, sigmas=sigmas, data_channels=config.data.channels)
         score = torch.nn.DataParallel(score)
 
         # Initialize the score model with the pre-trained weights
@@ -173,8 +173,9 @@ def main(args, config):
                                                 nrow=config.visualization.nrow, sample_save_dir=image_dir, verbose=config.visualization.verbose)
 
         final_samples = PID_ALD(all_init_samples,
-                                    scorenet=score, sigmas=sigmas_np, n_steps_each=args.n_steps_each, step_lr=config.sampling.step_lr,
-                                    k_p=args.k_p, k_i=args.k_i, k_d=args.k_d, k_i_decay=args.k_i_decay, k_d_decay=args.k_d_decay,
+                                    scorenet=score, sigmas=sigmas_np, n_steps_each=config.sampling.n_steps_each, step_lr=config.sampling.step_lr,
+                                    k_p=config.sampling.k_p, k_i=config.sampling.k_i, k_d=config.sampling.k_d,
+                                    k_i_decay=config.sampling.k_i_decay, k_d_decay=config.sampling.k_d_decay,
                                     device=device, batch_size=config.sampling.batch_size,
                                     denoise=config.sampling.denoise, verbose=config.sampling.verbose,
                                     saving_hook=saving_hook, evaluation_hook=evaluation_hook,

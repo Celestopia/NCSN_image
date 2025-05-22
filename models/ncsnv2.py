@@ -14,8 +14,8 @@ class NCSNv2(nn.Module):
         self.act = act
         self.register_buffer('sigmas', sigmas)
 
-        self.normalizer = self.norm(ngf, self.num_classes)
         self.begin_conv = nn.Conv2d(data_channels, ngf, 3, stride=1, padding=1)
+        self.normalizer = self.norm(ngf, self.num_classes)
         self.end_conv = nn.Conv2d(ngf, data_channels, 3, stride=1, padding=1)
 
         self.res1 = nn.ModuleList([
@@ -57,7 +57,7 @@ class NCSNv2(nn.Module):
         return x
 
     def forward(self, x, y):
-        h = x
+        h = 2 * x - 1 # !!IMPORTANT: Normalize pixel values to [-1, 1]
 
         output = self.begin_conv(h)
 

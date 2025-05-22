@@ -53,7 +53,7 @@ def PID_ALD(x_mod, scorenet, sigmas, n_steps_each, step_lr,
     e_diff=torch.zeros_like(x_mod).to(x_mod.device)
     e_t=torch.zeros_like(x_mod).to(x_mod.device)
     
-    global_step = 0 # Total number of sampling steps.
+    global_step = 0 # Total number of sampling steps
     for c, sigma in enumerate(sigmas): # Iterate over noise levels
         step_size = step_lr * (sigma / sigmas[-1]) ** 2
         if verbose:
@@ -255,7 +255,7 @@ class VisualizationHook:
                 plt.imshow(grid)
                 plt.xticks([])
                 plt.yticks([])
-                plt.savefig(sample_save_path)
+                plt.savefig(sample_save_path, bbox_inches='tight')
                 plt.close()
                 image_grid_save_path = sample_save_path.replace('.png', '.pth')
                 torch.save(grid, image_grid_save_path)

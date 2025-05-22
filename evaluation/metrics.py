@@ -78,6 +78,7 @@ def sample_fid_and_is(gen_images, inception_v3_model, mu_real, sigma_real, devic
 
     The weights of inception model is downloaded from 'https://github.com/mseitzer/pytorch-fid/releases/download/fid_weights/pt_inception-2015-12-05-6726825d.pth'.
     For CIFAR10 dataset, the mean and covariance of real features are downloaded from 'http://bioinf.jku.at/research/ttur/ttur_stats/fid_stats_cifar10_train.npz'.
+    For CelebA dataset, the mean and covariance of real features are downloaded from 'https://drive.google.com/drive/folders/1217uhIvLg9ZrYNKOR3XTRFSurt4miQrd?usp=sharing', metrics/pytorch_fid.zip, celeba_test_fid_stats.npz.
 
     Note that the penultimate activation of inception model is of shape (N, 1008), which aligns with the implementation of ncsnv2.
 
@@ -94,7 +95,7 @@ def sample_fid_and_is(gen_images, inception_v3_model, mu_real, sigma_real, devic
         (fid, is_mean, is_std) (tuple): FID and IS values.
     """
     # !!IMPORTANT: Normalize to [-1, 1]
-    gen_images = 2*gen_images - 1
+    gen_images = 2 * gen_images - 1
 
     # Save the weights and biases of the final layer for later use
     inception_v3_model = copy.deepcopy(inception_v3_model) # Make a copy to avoid modifying the original model
