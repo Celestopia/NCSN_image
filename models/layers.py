@@ -178,20 +178,6 @@ class ConvMeanPool(nn.Module):
         return output
 
 
-class MeanPoolConv(nn.Module):
-    def __init__(self, input_dim, output_dim, kernel_size=3, biases=True, spec_norm=False):
-        super().__init__()
-        self.conv = nn.Conv2d(input_dim, output_dim, kernel_size, stride=1, padding=kernel_size // 2, bias=biases)
-        if spec_norm:
-            self.conv = spectral_norm(self.conv)
-
-    def forward(self, inputs):
-        output = inputs
-        output = sum([output[:, :, ::2, ::2], output[:, :, 1::2, ::2],
-                      output[:, :, ::2, 1::2], output[:, :, 1::2, 1::2]]) / 4.
-        return self.conv(output)
-
-
 class ResidualBlock(nn.Module):
     def __init__(self, input_dim, output_dim, resample=None, act=nn.ELU(),
                  normalization=nn.BatchNorm2d, adjust_padding=False, dilation=None, spec_norm=False):

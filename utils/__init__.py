@@ -1,7 +1,7 @@
 import random
 import numpy as np
 import torch
-import logging
+
 
 def set_seed(seed):
     """Set all random seeds for reproducibility."""
@@ -10,7 +10,6 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.benchmark = True
-    #torch.backends.cudnn.deterministic = True
     return
 
 
@@ -20,19 +19,20 @@ def get_norm(x):
 
 
 @torch.no_grad()
-def batch_forward(model, x_mod, level, batch_size):
-    """Forward pass in batches"""
-    # x_mod: (n_samples, n_channels, image_size, image_size)
-    grad=[]
-    num_batches = (len(x_mod) + batch_size - 1) // batch_size
+def batch_forward(model, x1, x2, batch_size):
+    """Model forward pass in batches"""
+    # x1: (N, *x1_shape); x2: (N, *x2_shape)
+    assert x1.shape[0] == x2.shape[0], "x1 and x2 must have the same number of samples"
+    assert x1.device == x2.device, "x1 and x2 must be on the same device"
+    out=[]
+    num_batches = (len(x1) + batch_size - 1) // batch_size
     for i in range(num_batches):
         start_idx = i * batch_size
         end_idx = (i+1) * batch_size
-        if end_idx > len(x_mod):
-            end_idx = len(x_mod)
-        x = x_mod[start_idx:end_idx]
-        labels = torch.ones(x.shape[0], device=x_mod.device) * level
-        labels = labels.long()
-        grad.append(model(x, labels))
-    grad = torch.cat(grad, dim=0) # Shape: (n_samples, n_channels, image_size, image_size)
-    return grad
+        if end_idx > len(x1):
+            end_idx = len(x1)
+        x1_batch=x1[start_idx:end_idx]
+        x2_batch=x2[start_idx:end_idx]
+        out.append(model(x1_batch, x2_batch))
+    out = torch.cat(out, dim=0)
+    return out

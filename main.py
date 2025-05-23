@@ -1,28 +1,25 @@
 """Customized main function for PID ALD sampling on image generation task"""
+import os
+import sys
+import time
+import argparse
+import traceback
+import logging
+import json
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
-import argparse
-import traceback
-import time
-import logging
-import traceback
 import yaml
-import sys
-import os
-import torch
-import numpy as np
-import copy
-import os
-import json
 
 from utils import set_seed
-from utils.format import dict2namespace, namespace2dict
+from utils.format import dict2namespace
 from utils.log import get_logger, close_logger
-from models.ncsnv2 import NCSNv2
+from models.refinenet import RefineNet
 from models.ema import EMAHelper
-from dynamics import PID_ALD, SavingHook, EvaluationHook, RecordingHook, VisualizationHook
+from dynamics import PID_ALD
+from utils.hooks import SavingHook, VisualizationHook, RecordingHook, EvaluationHook
 from evaluation.inception import fid_inception_v3
 from functools import partial
 from utils.format import NumpyEncoder
@@ -97,13 +94,13 @@ def main(args, config):
     # Set up the root logger
     logger = get_logger(os.path.join(experiment_dir, 'stdout.txt'))
 
-    # Save experiment args and config
-    with open(os.path.join(experiment_dir, 'config.yml'), 'w') as f:
-        yaml.dump(vars(config), f, default_flow_style=False, sort_keys=False)
-    with open(os.path.join(experiment_dir, 'args.yml'), 'w') as f:
-        yaml.dump(vars(args), f, default_flow_style=False, sort_keys=False)
-
     try:
+        
+        # Save experiment args and config
+        with open(os.path.join(experiment_dir, 'config.yml'), 'w') as f:
+            yaml.dump(vars(config), f, default_flow_style=False, sort_keys=False)
+        with open(os.path.join(experiment_dir, 'args.yml'), 'w') as f:
+            yaml.dump(vars(args), f, default_flow_style=False, sort_keys=False)
 
         # Record experiment information
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -124,7 +121,7 @@ def main(args, config):
                     ).float().to(device)
         sigmas_np = sigmas.cpu().numpy()
 
-        score = NCSNv2(ngf=config.model.ngf, num_classes=config.model.num_classes, sigmas=sigmas, data_channels=config.data.channels)
+        score = RefineNet(ngf=config.model.ngf, num_classes=config.model.num_classes, sigmas=sigmas, data_channels=config.data.channels)
         score = torch.nn.DataParallel(score)
 
         # Initialize the score model with the pre-trained weights
@@ -162,15 +159,15 @@ def main(args, config):
                                         device=device) # Typically (10000,3,32,32)
         score.eval() # Important!!
         
+        recording_hook = RecordingHook(verbose=config.sampling.verbose)
         saving_hook = SavingHook(save=config.sampling.save, freq=config.sampling.freq, last_only=config.sampling.last_only,
                                     sample_save_dir=image_dir, verbose=config.sampling.verbose)
+        visualization_hook = VisualizationHook(save=config.visualization.save, freq=config.visualization.freq, last_only=config.visualization.last_only,
+                                                nrow=config.visualization.nrow, sample_save_dir=image_dir, verbose=config.visualization.verbose)
         evaluation_hook = EvaluationHook(inception_v3_model=inception_v3_model, mu_real=mu_real, sigma_real=sigma_real, device=device,
                                         batch_size=config.evaluation.batch_size, num_workers=config.evaluation.num_workers,
                                         evaluate=config.evaluation.evaluate, freq=config.evaluation.freq, last_only=config.evaluation.last_only,
                                         verbose=config.evaluation.verbose)
-        recording_hook = RecordingHook(verbose=config.sampling.verbose)
-        visualization_hook = VisualizationHook(save=config.visualization.save, freq=config.visualization.freq, last_only=config.visualization.last_only,
-                                                nrow=config.visualization.nrow, sample_save_dir=image_dir, verbose=config.visualization.verbose)
 
         final_samples = PID_ALD(all_init_samples,
                                     scorenet=score, sigmas=sigmas_np, n_steps_each=config.sampling.n_steps_each, step_lr=config.sampling.step_lr,
@@ -178,8 +175,7 @@ def main(args, config):
                                     k_i_decay=config.sampling.k_i_decay, k_d_decay=config.sampling.k_d_decay,
                                     device=device, batch_size=config.sampling.batch_size,
                                     denoise=config.sampling.denoise, verbose=config.sampling.verbose,
-                                    saving_hook=saving_hook, evaluation_hook=evaluation_hook,
-                                    recording_hook=recording_hook, visualization_hook=visualization_hook,
+                                    hooks=[saving_hook, visualization_hook, recording_hook, evaluation_hook]
         )
 
         sampler_record_dict_save_path = os.path.join(experiment_dir,'sampler_record_dict.json')

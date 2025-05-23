@@ -3,8 +3,15 @@ from .layers import ResidualBlock, RefineBlock
 from .normalization import InstanceNorm2dPlus
 
 
-
-class NCSNv2(nn.Module):
+class RefineNet(nn.Module):
+    """
+    Noise Conditional Score Network - Version 2
+    
+    Related Articles:
+    - NCSN: Generative Modeling by Estimating Gradients of the Data Distribution, https://arxiv.org/abs/1907.05600;
+    - NCSNv2: Improved Techniques for Training Score-Based Generative Models, https://arxiv.org/abs/2006.09011;
+    - RefineNet: Multi-Path Refinement Networks for High-Resolution Semantic Segmentation, https://arxiv.org/abs/1611.06612.
+    """
     def __init__(self, ngf, num_classes, sigmas, act=nn.ELU(), norm=InstanceNorm2dPlus, data_channels=3):
         super().__init__()
         self.norm = norm
